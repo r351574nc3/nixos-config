@@ -39,3 +39,13 @@ nixos-install                      # This will install nixos. Only ever need to 
 
 
 ## Setup K8S
+
+### Manually Create Certificates
+
+At this time, kubernetes can only be accessed from within nixos. If we use `kubectl` outside nixos
+
+```
+Unable to connect to the server: x509: certificate is valid for 10.0.2.15, 10.43.0.1, 127.0.0.1, not xxx.xxx.xxx.xxx
+```
+
+To get passed this, we need to add a certificate for the VM host. [Instructions on Certificate Setup](https://kubernetes.io/docs/tasks/administer-cluster/certificates/)
