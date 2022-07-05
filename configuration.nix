@@ -4,10 +4,14 @@
 
 { config, lib, pkgs, ... }:
 
+let
+  user = "leo";
+in
 {
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
+      <home-manager/nixos>
     ];
 
   # Use the GRUB 2 boot loader.
@@ -71,8 +75,9 @@
   #   isNormalUser = true;
   #   extraGroups = [ "wheel" ]; # Enable ‘sudo’ for the user.
   # };
-  users.users.leo = {
+  users.users.${user} = {
     isNormalUser = true;
+    shell = pkgs.fish;
     extraGroups = [ "wheel" ];
   };
 
@@ -87,12 +92,9 @@
       emacs
       curl
       wget
-      k3s
-      screen
       fish
-      easyrsa2
       openssl
-      cfssl
+      k3s
   #   vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
   #   wget
   #   firefox
@@ -110,20 +112,47 @@
 
   # Enable the OpenSSH daemon.
   services.openssh.enable = true;
-  services.k3s.enable = true;
-  services.k3s.docker = lib.mkForce false;
-  virtualisation.containerd.enable = true;
-  virtualisation.containerd.settings = {
-    version = 2;
+  services.k3s = {
+    enable = true;
+    role = "server";
+    #disableAgent = true;
+    docker = lib.mkForce false;
+    extraFlags = toString [
+      "--tls-san"
+      "192.168.222.29"
+      "--no-deploy"
+      "traefik"
+      "--container-runtime-endpoint"
+      "unix:///run/containerd/containerd.sock"
+    ];
   };
 
-  systemd.services.k3s = {
-    wants = ["containerd.service"];
-    after = ["containerd.service"];
-    # Install
-    wantedBy = [ "multi-user.target" ];
+  virtualisation.containerd = {
+    enable = true;
+    settings =
+      let
+        fullCNIPlugins = pkgs.buildEnv {
+          name = "full-cni";
+          paths = with pkgs;[
+            cni-plugins
+            cni-plugin-flannel
+          ];
+        };
+      in {
+        version = 2;
+        plugins."io.containerd.grpc.v1.cri".cni = {
+          bin_dir = "${fullCNIPlugins}/bin";
+          conf_dir = "/var/lib/rancher/k3s/agent/etc/cni/net.d/";
+        };
+      };
   };
-  services.k3s.extraFlags = "--no-deploy traefik --container-runtime-endpoint unix:///run/containerd/containerd.sock";
+
+  #systemd.services.k3s = {
+  #  #wants = ["containerd.service"];
+  #  #after = ["containerd.service"];
+  #  # Install
+  #  wantedBy = [ "multi-user.target" ];
+  #};
 
   # systemd.services.k3s-agent = {
      # Unit
@@ -164,5 +193,6 @@
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "21.11"; # Did you read the comment?
+
 }
 

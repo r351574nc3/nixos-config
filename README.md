@@ -37,6 +37,13 @@ cd /mnt/etc/nixos
 nixos-install                      # This will install nixos. Only ever need to run this one time.
 ```
 
+### Home Manager
+
+```shell
+nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+nix-channel --update
+```
+
 
 ## Setup K8S
 
